@@ -96,16 +96,31 @@ dfl["fecha_inicio_empleo"] = FECHA_SNAPSHOT - dfl["antiguedad_meses"].apply(
 )
 
 # Mantener solo empleos que comienzan en/tras la graduación (excluir empleos previos a graduación)
-dfl = dfl[dfl["fecha_inicio_empleo"] >= FECHA_GRAD_FIJA]
+dfl = dfl[dfl["fecha_inicio_empleo"] >= FECHA_GRAD_FIJA].copy()
 if dfl.empty:
     st.warning(
         "Todos los empleos comienzan antes de la fecha de graduación fija (2024-03-01). No hay datos para mostrar."
     )
     st.stop()
 
-# Para cédulas con múltiples empleos, tomar el MÁS ANTIGUO que aún sea >= fecha de graduación
+# Para cédulas con múltiples empleos post-graduacion, tomar el más antiguo; si hay empate:
+# 1) el de mayor ingreso, y si persiste,
+# 2) el primero que aparece en el dataset original.
+
+# Asegurar ingreso numérico
+dfl["ingreso_aproximado"] = pd.to_numeric(
+    dfl.get("ingreso_aproximado"), errors="coerce"
+)
+
+# Guardar el orden original (para desempate final)
+dfl = dfl.reset_index(drop=False).rename(columns={"index": "orden_original"})
+
 primer_empleo = (
-    dfl.sort_values("fecha_inicio_empleo")
+    dfl.sort_values(
+        ["fecha_inicio_empleo", "ingreso_aproximado", "orden_original"],
+        ascending=[True, False, True],
+        na_position="last",
+    )
     .groupby("cedula", as_index=False)
     .first()[["cedula", "fecha_inicio_empleo"]]
 )

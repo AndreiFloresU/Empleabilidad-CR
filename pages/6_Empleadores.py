@@ -66,23 +66,36 @@ if df_lab_ok.empty:
     )
     st.stop()
 
-# 6) Conteo de empleados únicos por patrono
-#    (una persona cuenta una vez por empleador aunque tenga múltiples filas)
+# 6) Un solo empleo por persona: el de mayor ingreso
+df_lab_ok["ingreso_aproximado"] = pd.to_numeric(
+    df_lab_ok.get("ingreso_aproximado"), errors="coerce"
+)
+
+df_one_job = df_lab_ok.sort_values(
+    ["cedula", "ingreso_aproximado"],
+    ascending=[True, False],
+    kind="mergesort",  # mantiene el orden original en caso de empate
+    na_position="last",
+).drop_duplicates(subset=["cedula"], keep="first")
+
+
+# Conteo de empleados únicos por patrono (ya con un empleo por persona)
 conteo = (
-    df_lab_ok.groupby("nombre_patrono")["cedula"]
+    df_one_job.groupby("nombre_patrono")["cedula"]
     .nunique()
     .reset_index(name="empleados_unicos")
 )
 
-# 7) Tipo de patrono (más frecuente por empleador)
+# 7) Tipo de patrono (más frecuente por empleador) usando el dataset de un empleo
 tipo_pref = (
-    df_lab_ok.groupby(["nombre_patrono", "tipo_patrono"])["cedula"]
+    df_one_job.groupby(["nombre_patrono", "tipo_patrono"])["cedula"]
     .count()
     .rename("n")
     .reset_index()
     .sort_values(["nombre_patrono", "n"], ascending=[True, False])
     .drop_duplicates(subset=["nombre_patrono"])[["nombre_patrono", "tipo_patrono"]]
 )
+
 
 top = conteo.merge(tipo_pref, on="nombre_patrono", how="left")
 

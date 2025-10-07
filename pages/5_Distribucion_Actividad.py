@@ -50,6 +50,16 @@ if dfl.empty:
 
 # 5️⃣ Contar personas únicas por actividad económica
 dfl = dfl.dropna(subset=["actividad_empresa"]).copy()
+
+# Nos quedamos con el trabajo de mayor ingreso por persona
+dfl["ingreso_aproximado"] = pd.to_numeric(dfl["ingreso_aproximado"], errors="coerce")
+dfl = dfl.sort_values(
+    ["cedula", "ingreso_aproximado"],
+    ascending=[True, False],
+    kind="mergesort", 
+    na_position="last",
+).drop_duplicates(subset=["cedula"], keep="first")
+
 conteo = (
     dfl.groupby("actividad_empresa")["cedula"]
     .nunique()

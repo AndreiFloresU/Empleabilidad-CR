@@ -9,8 +9,9 @@ ORDER = [
     ("Nivel", "grado"),
     ("Facultad", "facultad"),
     ("Carrera", "carrera"),
+    ("Enfasis", "enfasis"),
     ("Cohorte", "anio_graduacion"),
-    ("Periodo", "cod_graduacion"),  # Nuevo filtro
+    ("Periodo", "cod_graduacion"),
 ]
 COL_ID = "cedula"
 

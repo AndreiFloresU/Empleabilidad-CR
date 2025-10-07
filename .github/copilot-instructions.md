@@ -19,7 +19,7 @@ The analysis works with 6 interconnected tables in SQL Server (`CU-LPAFLORES\SQL
 
 ### Key Business Rules
 
-- **Primary Key**: `carnet` (student/graduate ID) - multiple records per person possible
+- **Primary Key**: `cedula` (unique person identifier) – multiple records per person possible
 - **Employment Logic**: `DataLaboral` contains only currently employed individuals
 - **Data Snapshot**: Employment data as of 2025-04-01
 - **Multi-University**: Analysis covers graduates from two Costa Rican universities
@@ -55,7 +55,7 @@ df_grad = get_data_copy("Graduados")  # Gets a deep copy for manipulation
 
 All pages should use `filtros_locales()` from `utils/filtros.py`:
 
-- Returns filtered DataFrame, carnet set, and selection dict
+- Returns filtered DataFrame, **cedula set**, and selection dict
 - Uses cascading selectboxes with "(Todos)" default option
 - Expects normalized column names (lowercase, stripped)
 - Fixed filter order: Universidad → Nivel → Sede → Facultad → Carrera → Cohorte
@@ -76,9 +76,9 @@ df.columns = df.columns.str.strip().str.lower()
 
 ### Table Schema Details
 
-#### `Graduados` - Graduate Registry
+#### `Graduados` – Graduate Registry
 
-Fields:
+**Fields:**
 
 - `cod_universidad`: int
 - `universidad`: nvarchar(50)
@@ -92,7 +92,7 @@ Fields:
 - `enfasis`: nvarchar(255)
 - `cod_plan`: nvarchar(25)
 - `cod_grado`: nvarchar(25)
-- `carnet`: nvarchar(255)
+- `cedula`: nvarchar(50)
 - `nombre`: nvarchar(100)
 - `sexo`: char(1)
 - `correo`: nvarchar(255)
@@ -102,72 +102,82 @@ Fields:
 
 Primary dimension for filtering and aggregation. All graduates from both universities included.
 
-#### `DataLaboral` - Employment Information (Employed Only)
+---
 
-Fields:
+#### `DataLaboral` – Employment Information
 
-- `carnet`: nvarchar(255)
-- `actividad_empresa`: nvarchar(255) (nullable)
-- `nombre_patrono`: nvarchar(255) (nullable)
-- `salario_base`: decimal(15,2) (nullable, defaults to 0)
-- `labora_actualmente`: char(1) (always 'S')
-- `ocupacion`: nvarchar(255) (nullable)
-- `porcentaje_variacion`: decimal(10,2) (nullable)
-- `patrono_es_moroso`: char(2) (values: 'SI', 'NO')
+**Fields:**
+
+- `cedula`: nvarchar(50)
+- `actividad_empresa`: nvarchar(255)
+- `nombre_patrono`: nvarchar(255)
+- `salario_base`: decimal(19,2)
+- `labora_actualmente`: char(1)
+- `ocupacion`: nvarchar(255)
+- `porcentaje_variacion`: decimal(19,2)
+- `patrono_es_moroso`: char(2)
 - `tipo_patrono`: nvarchar(255)
 - `antiguedad_meses`: int
-- `clasificacion`: nvarchar(255) (nullable)
+- `clasificacion`: nvarchar(255)
 - `ingreso_aproximado`: decimal(19,2)
 
-Contains only currently employed graduates. Multiple employment records per person possible.
+May contain multiple records per person (`cedula`) when a graduate holds more than one job at the snapshot date.
 
-#### `DataInmueble` - Real Estate Properties
+---
 
-Fields:
+#### `DataInmueble` – Real Estate Properties
 
-- `carnet`: nvarchar(255)
-- `horizontal`: char(1) (value: 'F', nullable)
+**Fields:**
+
+- `cedula`: nvarchar(50)
+- `horizontal`: char(1)
 - `naturaleza`: nvarchar(255)
 - `medida`: decimal(19,2)
-- `valor_fiscal`: decimal(19,2) (nullable)
-- `inmueble_duplicado`: char(1) (values: 'A', 'C', 'B', nullable)
+- `valor_fiscal`: decimal(19,2)
+- `duplicado`: char(1)
 
-Property ownership linked to graduates.
+A person may own multiple properties. Used for real estate asset analysis.
 
-#### `DataMueble` - Personal Assets
+---
 
-Fields:
+#### `DataMueble` – Personal Assets
 
-- `carnet`: nvarchar(255)
+**Fields:**
+
+- `cedula`: nvarchar(50)
 - `valor_fiscal`: decimal(19,2)
 - `categoria`: nvarchar(255)
 - `fecha_adquisicion`: date
 - `valor_contrato`: decimal(19,2)
 
-No null values allowed. Asset tracking for wealth analysis.
+Tracks movable property (vehicles, equipment, etc.). Multiple records per `cedula` possible.
 
-#### `DataLocalizacion` - Geographic Data
+---
 
-Fields:
+#### `DataLocalizacion` – Geographic Data
 
-- `carnet`: nvarchar(255)
-- `provincia`: nvarchar(255) (nullable)
-- `canton`: nvarchar(255) (nullable)
-- `distrito`: nvarchar(255) (nullable)
-- `telefono`: nvarchar(max) (JSON format, nullable)
+**Fields:**
 
-Contact information for geographic analysis.
+- `cedula`: nvarchar(50)
+- `provincia`: nvarchar(255)
+- `canton`: nvarchar(255)
+- `distrito`: nvarchar(255)
+- `telefono`: nvarchar(max)
 
-#### `DataSociedades` - Corporate Relationships
+Used for geographic and contact information. May include several rows per person if multiple addresses or phone sources exist.
 
-Fields:
+---
 
-- `carnet`: nvarchar(255)
+#### `DataSociedades` – Corporate Relationships
+
+**Fields:**
+
+- `cedula`: nvarchar(50)
 - `nombre`: nvarchar(255)
 - `puesto`: nvarchar(255)
 - `representacion`: nvarchar(255)
 
-No null values allowed. Corporate positions and representation roles.
+Captures business or corporate affiliations. Multiple records per `cedula` are expected.
 
 ## Development Workflows
 
@@ -222,7 +232,7 @@ init_data()
 df_data = get_data_copy("[TableName]")
 
 # 2. Filtros
-df_filtered, carnets_filtered, selections = filtros_locales(df_data)
+df_filtered, cedulas_filtered, selections = filtros_locales(df_data)
 
 # 3. Gráfico
 # [Create visualization with filtered data]
@@ -245,7 +255,7 @@ mostrar_tarjeta_nota(texto_explicacion, [filter_name], [filter_description])
 
 ### Naming & Structure
 
-- **Main identifier**: `carnet` (student/graduate ID)
+- **Main identifier**: `cedula` (unique person identifier)
 - **Aggregation dimensions**: `universidad`, `facultad`, `carrera` (standard hierarchy)
 - **Date format**: Employment data snapshot is 2025-04-01
 - **File naming**: Main page is `Tasa_Empleabilidad.py`, additional pages use numbered format
@@ -289,7 +299,7 @@ mostrar_tarjeta_nota(texto_explicacion, [filter_name], [filter_description])
 - **Wealth Analysis**: Combine `DataInmueble` + `DataMueble` for asset distribution
 - **Geographic Patterns**: Use `DataLocalizacion` for regional employment distribution
 - **Corporate Engagement**: Leverage `DataSociedades` for leadership and representation roles
-- **Cross-Table Insights**: Join tables via `carnet` for comprehensive graduate profiles
+- **Cross-Table Insights**: Join tables via `cedula` for comprehensive graduate profiles
 
 ### Key Analysis Dimensions
 

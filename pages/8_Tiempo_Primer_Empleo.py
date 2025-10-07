@@ -35,7 +35,9 @@ df_grad_filtrado = df_grad_filtrado[
     df_grad_filtrado["anio_graduacion"].astype(str) == "2024"
 ].copy()
 if df_grad_filtrado.empty:
-    st.warning("No hay graduados en la cohorte 2024 con los filtros seleccionados.")
+    st.warning(
+        "No hay graduados en el Año de Graduacion 2024 con los filtros seleccionados."
+    )
     st.stop()
 
 cedulas_validas = set(cedulas_filtradas)
@@ -53,7 +55,7 @@ cedulas_2024 = set(
 )
 if not cedulas_2024:
     st.warning(
-        "No hay cédulas válidas en la cohorte 2024 para calcular el tiempo al primer empleo."
+        "No hay cédulas válidas en el Año de Graduacion 2024 para calcular el tiempo al primer empleo."
     )
     st.stop()
 
@@ -64,7 +66,9 @@ FECHA_SNAPSHOT = pd.Timestamp("2025-04-01")  # fecha de extracción de DataLabor
 # === 5) Subconjunto laboral: solo esas cédulas y empleo vigente (si existe el campo) ===
 dfl = df_lab[df_lab["cedula"].isin(cedulas_2024)].copy()
 if dfl.empty:
-    st.warning("No hay registros laborales para las cédulas de la cohorte 2024.")
+    st.warning(
+        "No hay registros laborales para las cédulas del Año de Graduacion 2024."
+    )
     st.stop()
 
 if "labora_actualmente" in dfl.columns:
@@ -74,7 +78,7 @@ if "labora_actualmente" in dfl.columns:
     dfl = dfl[dfl["labora_actualmente"] == "S"]
 
 if dfl.empty:
-    st.warning("No hay empleos vigentes para las cédulas de la cohorte 2024.")
+    st.warning("No hay empleos vigentes para las cédulas del Año de Graduacion 2024.")
     st.stop()
 
 # Requerimos antiguedad_meses para estimar fecha de inicio del empleo
@@ -167,7 +171,7 @@ fig = px.histogram(
     x="meses_al_primer_empleo",
     nbins=12,
     labels={"meses_al_primer_empleo": "Meses al primer empleo"},
-    title="Distribución: meses al primer empleo (Cohorte 2024)",
+    title="Distribución: meses al primer empleo (Año de Graduacion 2024)",
 )
 fig.update_traces(hovertemplate="Meses: %{x}<br>Personas: %{y}<extra></extra>")
 fig.update_layout(

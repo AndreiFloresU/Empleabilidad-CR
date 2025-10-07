@@ -12,7 +12,7 @@ from utils.estilos import aplicar_tema_plotly, mostrar_tarjeta_nota
 aplicar_tema_plotly()
 
 # 1. Nombre Página
-st.title("📉 Desempleabilidad por Cohorte")
+st.title("📉 Desempleabilidad por Año de Graduacion")
 
 # Initialize data
 init_data()
@@ -107,10 +107,10 @@ fig = px.line(
     x="anio_graduacion",
     y="tasa_desempleabilidad",
     color="universidad",
-    title="Evolución de la Desempleabilidad por Cohorte",
+    title="Evolución de la Desempleabilidad por Año de Graduacion",
     labels={
         "tasa_desempleabilidad": "Tasa de Desempleabilidad (%)",
-        "anio_graduacion": "Cohorte de Graduación",
+        "anio_graduacion": "Año de Graduación",
         "universidad": "Universidad",
     },
     markers=True,
@@ -128,7 +128,7 @@ fig.update_traces(
     textposition="top center",
     texttemplate="%{y}%",
     hovertemplate="<b>%{fullData.name}</b><br>"
-    + "Cohorte: %{x}<br>"
+    + "Año de Graduacion: %{x}<br>"
     + "Desempleabilidad: %{y}%<br>"
     + "Graduados: %{customdata[0]}<br>"
     + "No empleados: %{customdata[1]}<br>"
@@ -140,7 +140,7 @@ años_unicos = sorted(df_desempleabilidad["anio_graduacion"].unique())
 fig.update_layout(
     height=500,
     legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-    xaxis_title="Cohorte de Graduación",
+    xaxis_title="Año de Graduación",
     yaxis_title="Tasa de Desempleabilidad (%)",
     xaxis_tickangle=-45,
     xaxis=dict(
@@ -152,21 +152,3 @@ fig.update_layout(
 )
 
 st.plotly_chart(fig, use_container_width=True)
-
-# 5. Tarjeta explicativa
-texto_explicacion = f"""
-<b>📉 Desempleabilidad por Cohorte - {universidad_seleccionada}</b><br><br>
-Esta visualización muestra la <b>proporción de graduados no empleados</b> (a la fecha de corte) 
-para cada cohorte de graduación.<br><br>
-<b>Cálculo:</b><br>
-• <b>Total graduados</b>: personas únicas por cohorte en <i>Graduados</i><br>
-• <b>No empleados</b>: total graduados − total empleados (empleo vigente en <i>DataLaboral</i>)<br>
-• <b>Tasa de desempleabilidad</b> = (No empleados / Graduados) × 100<br><br>
-<b>Nota:</b> Si una persona posee varias titulaciones en distintos años, 
-aparecerá en cada cohorte correspondiente. En caso de múltiples empleos, 
-solo cuenta una vez por cohorte.
-"""
-
-mostrar_tarjeta_nota(
-    texto_explicacion, "Universidad", f"Análisis enfocado en {universidad_seleccionada}"
-)

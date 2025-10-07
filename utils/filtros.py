@@ -10,7 +10,7 @@ ORDER = [
     ("Facultad", "facultad"),
     ("Carrera", "carrera"),
     ("Enfasis", "enfasis"),
-    ("Cohorte", "anio_graduacion"),
+    ("Año de Graduacion", "anio_graduacion"),
     ("Periodo", "cod_graduacion"),
 ]
 COL_ID = "cedula"

@@ -10,7 +10,7 @@ from utils.estilos import aplicar_tema_plotly, mostrar_tarjeta_nota
 
 aplicar_tema_plotly()
 
-st.title("📊 Empleabilidad por Cohorte")
+st.title("📊 Empleabilidad por Año de Graduacion")
 
 # Initialize data
 init_data()
@@ -95,10 +95,10 @@ fig = px.line(
     x="anio_graduacion",
     y="tasa_empleabilidad",
     color="universidad",
-    title="Evolución de la Empleabilidad por Cohorte",
+    title="Evolución de la Empleabilidad por Año de Graduacion",
     labels={
         "tasa_empleabilidad": "Tasa de Empleabilidad (%)",
-        "anio_graduacion": "Cohorte de Graduación",
+        "anio_graduacion": "Año de Graduación",
         "universidad": "Universidad",
     },
     markers=True,
@@ -115,7 +115,7 @@ fig.update_traces(
     textposition="top center",
     texttemplate="%{y}%",
     hovertemplate="<b>%{fullData.name}</b><br>"
-    + "Cohorte: %{x}<br>"
+    + "Año de Graduacion: %{x}<br>"
     + "Empleabilidad: %{y}%<br>"
     + "Graduados: %{customdata[0]}<br>"
     + "Empleados: %{customdata[1]}<br>"
@@ -127,7 +127,7 @@ años_unicos = sorted(df_empleabilidad["anio_graduacion"].unique())
 fig.update_layout(
     height=500,
     legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-    xaxis_title="Cohorte de Graduación",
+    xaxis_title="Año de Graduación",
     yaxis_title="Tasa de Empleabilidad (%)",
     xaxis_tickangle=-45,
     xaxis=dict(
@@ -139,21 +139,3 @@ fig.update_layout(
 )
 
 st.plotly_chart(fig, use_container_width=True)
-
-# 5. Tarjeta explicativa
-universidad_seleccionada = selections.get("Universidad", "universidad seleccionada")
-texto_explicacion = f"""
-<b>📊 Análisis de Empleabilidad por Cohorte - {universidad_seleccionada}</b><br><br>
-Este gráfico muestra la <b>evolución temporal de la tasa de empleabilidad</b> para la universidad seleccionada, 
-desglosada por cohorte de graduación.<br><br>
-<b>Puntos clave del análisis:</b><br>
-• <b>Tendencia temporal:</b> Permite identificar si la empleabilidad mejora o empeora a lo largo del tiempo<br>
-• <b>Variación por cohorte:</b> Muestra cómo diferentes promociones de graduados logran insertarse en el mercado laboral<br>
-• <b>Análisis individual:</b> Enfoque específico en una universidad para obtener insights detallados<br><br>
-<b>💡 Interpretación:</b> Las variaciones pueden reflejar cambios en el mercado laboral, 
-calidad educativa, o condiciones económicas específicas durante cada período de graduación.
-"""
-
-mostrar_tarjeta_nota(
-    texto_explicacion, "Universidad", f"Análisis enfocado en {universidad_seleccionada}"
-)

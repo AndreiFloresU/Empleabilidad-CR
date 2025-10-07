@@ -32,12 +32,12 @@ if df_grad_filtrado.empty:
 # 4️⃣ Control: seleccionar eje de columnas
 col_dim = st.radio(
     "Columnas del heatmap",
-    options=["Cohorte (anio_graduacion)", "Grado (grado)"],
+    options=["Año de Graduacion", "Grado"],
     index=0,
     horizontal=True,
 )
 
-columna_columnas = "anio_graduacion" if "Cohorte" in col_dim else "grado"
+columna_columnas = "anio_graduacion" if "Año de Graduacion" in col_dim else "grado"
 
 # 5️⃣ Crear columna combinada Carrera — Énfasis (si existe)
 df_grad_filtrado = df_grad_filtrado.copy()
@@ -146,6 +146,61 @@ custom_data = np.dstack(
     ]
 )
 
+# 🔟.5️⃣ Top N por tasa global (ponderada) a lo largo del eje X
+# Opcional: controles
+top_n = 10
+min_graduados_total = 1  # ajusta si quieres filtrar carreras con muy pocos graduados
+
+# 1) Determinar las columnas del eje X que quedaron en la matriz
+cols_x = list(matriz.columns)
+
+# 2) Traer los totales por fila y por cada columna x (cohorte/grado) desde 'tabla'
+#    y quedarnos solo con las columnas en cols_x
+tot_grads_wide = tabla.pivot(
+    index=columna_filas, columns=columna_columnas, values="total_graduados"
+)
+tot_emps_wide = tabla.pivot(
+    index=columna_filas, columns=columna_columnas, values="total_empleados"
+)
+
+# Alinear a lo que está en la matriz (mismas filas y columnas)
+tot_grads_wide = tot_grads_wide.reindex(index=matriz.index, columns=cols_x)
+tot_emps_wide = tot_emps_wide.reindex(index=matriz.index, columns=cols_x)
+
+# 3) Sumar por fila a lo largo de TODO el eje X
+sum_grads = tot_grads_wide.sum(axis=1, skipna=True)
+sum_emps = tot_emps_wide.sum(axis=1, skipna=True)
+
+# 4) Calcular tasa global ponderada (penaliza faltantes al no aportar graduados/empleados)
+tasa_global = (sum_emps / sum_grads * 100).replace([np.inf, -np.inf], np.nan)
+
+# 5) (Opcional) filtrar por cobertura mínima de graduados
+validas_rank = tasa_global[sum_grads >= min_graduados_total].dropna()
+
+if validas_rank.empty:
+    st.warning("No hay suficientes datos para calcular el Top con el criterio global.")
+    st.stop()
+
+# 6) Tomar Top N según tasa global
+top_idx = (
+    validas_rank.sort_values(ascending=False).head(min(top_n, len(validas_rank))).index
+)
+
+# 7) Filtrar todo al Top N y mantener orden por ranking
+matriz = matriz.loc[top_idx]
+tabla_full = tabla_full.loc[top_idx]
+tot_grads_wide = tot_grads_wide.loc[top_idx, cols_x]
+tot_emps_wide = tot_emps_wide.loc[top_idx, cols_x]
+
+# 8) Reconstruir custom_data (en el mismo orden y columnas)
+custom_data = np.dstack(
+    [
+        tot_grads_wide.values,
+        tot_emps_wide.values,
+    ]
+)
+
+
 # 11️⃣ Heatmap
 fig = px.imshow(
     matriz,
@@ -158,7 +213,7 @@ fig = px.imshow(
 
 hover_template = (
     f"{columna_filas}: %{{y}}<br>"
-    f"{'Cohorte' if columna_columnas=='anio_graduacion' else 'Grado'}: %{{x}}<br>"
+    f"{'Año de Graduacion' if columna_columnas=='anio_graduacion' else 'Grado'}: %{{x}}<br>"
     "Empleabilidad: %{z}%<br>"
     "Graduados: %{customdata[0]}<br>"
     "Empleados: %{customdata[1]}<br>"
@@ -168,8 +223,10 @@ fig.update_traces(customdata=custom_data, hovertemplate=hover_template)
 
 fig.update_layout(
     title=f"Empleabilidad por {columna_filas.capitalize()} × "
-    f"{'Cohorte' if columna_columnas=='anio_graduacion' else 'Grado'}",
-    xaxis_title="Cohorte" if columna_columnas == "anio_graduacion" else "Grado",
+    f"{'Año de Graduacion' if columna_columnas=='anio_graduacion' else 'Grado'}",
+    xaxis_title=(
+        "Año de Graduacion" if columna_columnas == "anio_graduacion" else "Grado"
+    ),
     yaxis_title="Carrera / Énfasis",
     coloraxis_colorbar=dict(title="% empleados"),
     height=600,

@@ -74,7 +74,118 @@ def calcular_empleabilidad_por_cohorte(df_grad, df_lab, cedulas_validas):
     return resultado
 
 
-# Calcular empleabilidad
+@st.cache_data
+def calcular_empleabilidad_general(
+    df_grad,
+    df_lab,
+    universidad=None,
+    nivel=None,
+    facultad=None,
+    carrera=None,
+    enfasis=None,
+):
+    """
+    Calcula la tasa de empleabilidad general considerando los filtros seleccionados.
+    """
+    # Filtrar según los filtros especificados
+    filtered_df = df_grad.copy()
+
+    if universidad and universidad != "Todos":
+        filtered_df = filtered_df[filtered_df["universidad"] == universidad]
+    if nivel and nivel != "Todos":
+        filtered_df = filtered_df[filtered_df["grado"] == nivel]
+    if facultad and facultad != "Todos":
+        filtered_df = filtered_df[filtered_df["facultad"] == facultad]
+    if carrera and carrera != "Todos":
+        filtered_df = filtered_df[filtered_df["carrera"] == carrera]
+    if enfasis and enfasis != "Todos":
+        filtered_df = filtered_df[filtered_df["enfasis"] == enfasis]
+
+    # Obtener cédulas únicas de graduados filtrados
+    cedulas_validas = set(filtered_df["cedula"].dropna().astype(str).unique().tolist())
+
+    # Contar total de graduados
+    total_graduados = len(cedulas_validas)
+
+    if total_graduados == 0:
+        return 0, 0, 0
+
+    # Contar graduados empleados
+    cedulas_empleados = set(df_lab["cedula"].dropna().astype(str).unique().tolist())
+    empleados = len(cedulas_validas.intersection(cedulas_empleados))
+
+    # Calcular tasas
+    tasa_empleabilidad = (empleados / total_graduados) * 100
+    tasa_desempleo = 100 - tasa_empleabilidad
+
+    return round(tasa_empleabilidad, 1), round(tasa_desempleo, 1), total_graduados
+
+
+# Obtener valores de los filtros seleccionados
+universidad_seleccionada = selections.get("Universidad")
+nivel_seleccionado = selections.get("Nivel")
+facultad_seleccionada = selections.get("Facultad")
+carrera_seleccionada = selections.get("Carrera")
+enfasis_seleccionado = selections.get("Enfasis")
+
+# Calcular empleabilidad general aplicando todos los filtros
+tasa_empleo, tasa_desempleo, total_graduados = calcular_empleabilidad_general(
+    df_graduados,
+    df_laboral,
+    universidad=universidad_seleccionada,
+    nivel=nivel_seleccionado,
+    facultad=facultad_seleccionada,
+    carrera=carrera_seleccionada,
+    enfasis=enfasis_seleccionado,
+)
+
+# === 4. Visualización en tarjetas
+st.markdown("### 📊 Resultados")
+
+
+def tarjeta(title, value, color="#ffffff", icon="✅"):
+    st.markdown(
+        f"""
+    <div style='background-color:{color};padding:1.2rem 1rem;border-radius:12px;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.1);text-align:center;
+                border-left: 8px solid #6C63FF; margin-bottom:15px'>
+        <div style='font-size:1.1rem;font-weight:bold;margin-bottom:5px;'>{icon} {title}</div>
+        <div style='font-size:2rem;color:#333'>{value}</div>
+    </div>
+    """,
+        unsafe_allow_html=True,
+    )
+
+
+col1, col2 = st.columns(2)
+with col1:
+    tarjeta(
+        "Tasa de Empleabilidad",
+        f"{tasa_empleo}%",
+        icon="📈",
+    )
+with col2:
+    tarjeta(
+        "Tasa de Desempleo",
+        f"{tasa_desempleo}%",
+        icon="📉",
+    )
+
+col3, col4 = st.columns(2)
+with col3:
+    tarjeta(
+        "Total de Graduados",
+        f"{total_graduados:,}",
+        icon="🎓",
+    )
+with col4:
+    tarjeta(
+        "Total de Empleados",
+        f"{int(total_graduados * tasa_empleo / 100):,}",
+        icon="💼",
+    )
+
+# 5. Calcular empleabilidad por cohorte para el gráfico
 df_empleabilidad = calcular_empleabilidad_por_cohorte(
     df_grad_filtrado, df_laboral, cedulas_filtradas
 )
@@ -89,7 +200,7 @@ df_empleabilidad = df_empleabilidad.sort_values("anio_graduacion")
 universidad_seleccionada = selections.get("Universidad", "Universidad")
 df_empleabilidad["universidad"] = universidad_seleccionada
 
-# 4. Gráfico
+# Gráfico
 fig = px.line(
     df_empleabilidad,
     x="anio_graduacion",

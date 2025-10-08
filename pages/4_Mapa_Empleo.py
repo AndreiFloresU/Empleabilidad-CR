@@ -63,21 +63,14 @@ df_loc_ok = df_loc_ok.replace({"provincia_norm": {"": np.nan}}).dropna(
     subset=["provincia_norm"]
 )
 
-# Si hay múltiples filas por persona en Localizacion, nos quedamos con la provincia más frecuente por cédula
-loc_prefer = (
-    df_loc_ok.groupby(["cedula", "provincia_norm"])["provincia_norm"]
-    .count()
-    .rename("n")
-    .reset_index()
-    .sort_values(["cedula", "n"], ascending=[True, False])
-    .drop_duplicates(subset=["cedula"])
-)[["cedula", "provincia_norm"]]
+# Como cada cédula tiene una sola provincia, basta con deduplicar por cédula
+loc_map = df_loc_ok[["cedula", "provincia_norm"]].drop_duplicates(subset=["cedula"])
 
-# Graduados de la universidad filtrada (por cédula válidas) con su provincia “preferida”
+# Graduados de la universidad filtrada (por cédula válidas) con su provincia
 grad_con_prov = (
     df_grad_filtrado[df_grad_filtrado["cedula"].isin(cedulas_validas)][["cedula"]]
     .drop_duplicates()
-    .merge(loc_prefer, on="cedula", how="left")
+    .merge(loc_map, on="cedula", how="left")
     .dropna(subset=["provincia_norm"])
 )
 
@@ -95,11 +88,11 @@ if "labora_actualmente" in df_lab_ok.columns:
         df_lab_ok["labora_actualmente"].astype(str).str.upper().str.strip() == "S"
     ]
 
-# Mapear provincia a cada empleado (usando la provincia preferida por cédula)
+# Mapear provincia a cada empleado
 empleados_con_prov = (
     df_lab_ok[["cedula"]]
     .drop_duplicates()
-    .merge(loc_prefer, on="cedula", how="left")
+    .merge(loc_map, on="cedula", how="left")
     .dropna(subset=["provincia_norm"])
 )
 
